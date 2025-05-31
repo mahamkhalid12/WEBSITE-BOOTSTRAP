@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Assistant</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+    }
+
+    /* Floating Icon Button */
+    #chat-icon {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 65px;
+      height: 65px;
+      background: #6A0DAD;
+      border-radius: 50%;
+      background-image: url('https://img.icons8.com/ios-filled/50/ffffff/chat.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    #chat-icon:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    /* Chat Window */
+    #chat-window {
+      position: fixed;
+      bottom: 110px;
+      right: 30px;
+      width: 340px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.4s ease;
+      z-index: 999;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    #chat-header {
+      background: #6A0DAD;
+      color: #fff;
+      padding: 12px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #chat-log {
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      opacity: 0;
+      animation: fadeIn 0.3s forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .user {
+      text-align: right;
+      color: #6A0DAD;
+    }
+
+    .bot {
+      text-align: left;
+      color: #333;
+    }
+
+    #suggestions {
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .suggestion {
+      background: #eee;
+      border: none;
+      border-radius: 15px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .suggestion:hover {
+      background: #ddd;
+    }
+
+    #chat-input {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+      background: #fafafa;
+    }
+
+    #userInput {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    #sendBtn {
+      margin-left: 5px;
+      padding: 8px 12px;
+      background: #6A0DAD;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #sendBtn:hover {
+      background: #5a0898;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Floating Icon -->
+<div id="chat-icon" title="Chat with AI"></div>
+
+<!-- Chat Window -->
+<div id="chat-window">
+  <div id="chat-header">Ask AI Assistant</div>
+  <div id="chat-log"></div>
+  <div id="suggestions">
+    <button class="suggestion">What services do you offer?</button>
+    <button class="suggestion">How can I contact support?</button>
+    <button class="suggestion">Tell me about your pricing.</button>
+  </div>
+  <div id="chat-input">
+    <input type="text" id="userInput" placeholder="Type your message..."/>
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+  const chatIcon = document.getElementById("chat-icon");
+  const chatWindow = document.getElementById("chat-window");
+  const userInput = document.getElementById("userInput");
+  const chatLog = document.getElementById("chat-log");
+  const suggestions = document.querySelectorAll(".suggestion");
+
+  chatIcon.addEventListener("click", () => {
+    if (chatWindow.style.display === "flex") {
+      chatWindow.style.display = "none";
+    } else {
+      chatWindow.style.display = "flex";
+    }
+  });
+
+  suggestions.forEach(button => {
+    button.addEventListener("click", () => {
+      userInput.value = button.textContent;
+      sendMessage();
+    });
+  });
+
+  document.getElementById("sendBtn").addEventListener("click", sendMessage);
+
+  async function sendMessage() {
+    const message = userInput.value.trim();
+    if (!message) return;
+
+    appendMessage("You", message, "user");
+    userInput.value = "";
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{ role: "user", content: message }]
+        })
+      });
+
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content || "Sorry, I didn't understand that.";
+      appendMessage("AI", reply, "bot");
+    } catch (error) {
+      appendMessage("AI", "Oops! Something went wrong.", "bot");
+    }
+  }
+
+  function appendMessage(sender, text, className) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `message ${className}`;
+    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+    chatLog.appendChild(msgDiv);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
